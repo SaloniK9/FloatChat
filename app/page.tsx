@@ -1,162 +1,376 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import DashboardLayout from '../app/components/DashboardLayout';
+import { 
+    Search, BookOpen, DatabaseZap, Clock, Briefcase, Users, Map as MapIcon, Server, Settings, 
+    Thermometer, Waves, AlertTriangle, X, Globe, Send, User, BotMessageSquare, Bell, Printer, Wind
+} from 'lucide-react';
 
-// --- Reusable Components ---
+// --- Mock Data for UI Demonstration ---
+// In a real app, this data would come from an API endpoint powered by your Python notebooks.
+const mockFloats = [
+    { id: 'F7A9', lat: 18.52, lon: 73.85, temp: 28.5, salinity: 35.2 },
+    { id: 'B3C1', lat: 19.07, lon: 72.87, temp: 29.1, salinity: 36.1 },
+    { id: 'D9E4', lat: 18.92, lon: 72.83, temp: 28.8, salinity: 35.8 },
+];
 
-const FloatChatLogo = ({ className = "w-24 h-24 text-white" }) => (
-    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M25 50C25 36.1929 36.1929 25 50 25C63.8071 25 75 36.1929 75 50C75 63.8071 63.8071 75 50 75" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
-        <path d="M37.5 50C37.5 43.0964 43.0964 37.5 50 37.5C56.9036 37.5 62.5 43.0964 62.5 50" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
-        <circle cx="20" cy="50" r="3" fill="currentColor"/>
-        <circle cx="28" cy="35" r="2" fill="currentColor"/>
-        <circle cx="40" cy="23" r="2" fill="currentColor"/>
-        <circle cx="55" cy="20" r="3" fill="currentColor"/>
-        <circle cx="70" cy="28" r="2" fill="currentColor"/>
-        <circle cx="80" cy="40" r="3" fill="currentColor"/>
-        <circle cx="80" cy="60" r="2" fill="currentColor"/>
-    </svg>
-);
+const mockPapers = [
+    { title: "Analysis of Salinity Variation in the Arabian Sea", author: "INCOIS", year: 2024, link: "https://www.incois.gov.in/documents/Research-Papers/paper1.pdf" },
+    { title: "Impact of BGC Floats on Climate Modeling", author: "IIT Madras", year: 2023, link: "https://www.iitm.ac.in/documents/Research-Papers/paper2.pdf" },
+    { title: "Real-time Ocean Temperature Monitoring", author: "CSIR-NIO", year: 2024, link: "https://www.nio.org/document/research-papers/paper3.pdf" },
+];
 
-const BackgroundWaves = () => (
-    <div className="absolute bottom-0 left-0 w-full h-1/2 overflow-hidden">
-        <svg className="w-full h-full" viewBox="0 0 1440 320" preserveAspectRatio="none">
-            <defs>
-                <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style={{stopColor: "rgba(56, 189, 248, 0.3)"}} />
-                    <stop offset="100%" style={{stopColor: "rgba(37, 99, 235, 0)"}} />
-                </linearGradient>
-            </defs>
-            <path fill="url(#wave-gradient)" d="M0,192L48,176C96,160,192,128,288,133.3C384,139,480,181,576,186.7C672,192,768,160,864,138.7C960,117,1056,107,1152,122.7C1248,139,1344,181,1392,202.7L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-            <path fill="rgba(30, 64, 175, 0.5)" d="M0,224L48,208C96,192,192,160,288,170.7C384,181,480,235,576,240C672,245,768,203,864,181.3C960,160,1056,160,1152,176C1248,192,1344,224,1392,240L1440,256L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-        </svg>
+// --- Reusable UI Components ---
+
+const FloatDetailModal = ({ float, onClose, role }: { float: any, onClose: () => void, role: string }) => {
+    if (!float) return null;
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl p-6 relative animate-fade-in-up">
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 transition-colors"><X size={20}/></button>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">BGC Float Details: <span className="text-blue-600">{float.id}</span></h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 className="font-bold text-gray-700 mb-2">Live Data</h3>
+                        <p><strong>Temperature:</strong> {float.temp}°C</p>
+                        <p><strong>Salinity:</strong> {float.salinity} PSU</p>
+                        <p><strong>Location:</strong> {float.lat}, {float.lon}</p>
+                    </div>
+                    {role === 'local' && (
+                         <div>
+                            <h3 className="font-bold text-gray-700 mb-2">Analysis & Commentary</h3>
+                            <div className="bg-green-100 border-l-4 border-green-500 text-green-800 p-4 rounded-r-lg">
+                                <p className="font-semibold">High Salinity Alert!</p>
+                                <p>Salinity at this point is unusually high. This could indicate a higher concentration of nutrients, increasing the chances of finding more fish in this area.</p>
+                            </div>
+                        </div>
+                    )}
+                    <div className="col-span-1 md:col-span-2">
+                        <h3 className="font-bold text-gray-700 mb-2">Data Trends</h3>
+                        <div className="h-64 bg-gray-200 rounded-md flex items-center justify-center border">
+                             <p className="text-gray-500">Graphs for Temperature & Salinity Trends</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MapViewer = ({ onFloatClick }: { onFloatClick: (float: any) => void }) => {
+    const [mapMode, setMapMode] = useState('2d');
+    const lastUpdated = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return (
+        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+            <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
+                <h3 className="font-bold text-gray-800">BGC Float Tracking (INCOIS Style)</h3>
+                <div className="flex items-center gap-4">
+                     <p className="text-xs text-gray-500">Last Updated: {lastUpdated}</p>
+                    <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg">
+                        <button onClick={() => setMapMode('2d')} className={`px-3 py-1 text-sm rounded-md transition-colors ${mapMode === '2d' ? 'bg-white shadow' : 'hover:bg-gray-300'}`}>2D</button>
+                        <button onClick={() => setMapMode('3d')} className={`px-3 py-1 text-sm rounded-md transition-colors ${mapMode === '3d' ? 'bg-white shadow' : 'hover:bg-gray-300'}`}>3D</button>
+                    </div>
+                </div>
+            </div>
+            <div className="h-[60vh] min-h-[500px] bg-gray-800 rounded-md flex items-center justify-center border relative overflow-hidden">
+                <p className="text-gray-400 z-10">Interactive {mapMode.toUpperCase()} Map Visualization (Leaflet/Cesium)</p>
+                {mockFloats.map(float => (
+                    <button 
+                        key={float.id}
+                        onClick={() => onFloatClick(float)}
+                        className="absolute w-4 h-4 bg-cyan-400 rounded-full z-20 hover:scale-150 transition-transform shadow-lg border-2 border-white"
+                        style={{ top: `${(19.1 - float.lat) * 250}%`, left: `${(float.lon - 72.8) * 200}%` }}
+                        title={`BGC Float ${float.id}`}
+                    ></button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const StatCard = ({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) => (
+    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+        <div className="flex items-center">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
+                {icon}
+            </div>
+            <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">{title}</p>
+                <p className="text-2xl font-bold text-gray-800">{value}</p>
+            </div>
+        </div>
     </div>
 );
 
-// Define the type for the TabButton props
-interface TabButtonProps {
-    value: string;
-    label: string;
-    role: string;
-    setRole: (role: string) => void;
-}
-
-const TabButton = ({ value, label, role, setRole }: TabButtonProps) => (
-    <button
-        type="button"
-        onClick={() => setRole(value)}
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${role === value ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'}`}
-    >
-        {label}
-    </button>
+const DataChartCard = ({ title, icon }: { title: string, icon: React.ReactNode }) => (
+     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+        <div className="flex items-center text-gray-800 mb-4">
+            {icon}
+            <h3 className="font-bold ml-2">{title}</h3>
+        </div>
+        <div className="h-64 bg-gray-200 rounded-md flex items-center justify-center border">
+            <p className="text-gray-500">Chart Area</p>
+        </div>
+    </div>
 );
 
-// --- The Main Landing Page Component ---
-export default function LandingPage() {
-    const [view, setView] = useState('signup'); // 'signup', 'login'
-    const [role, setRole] = useState('student'); // 'student', 'researcher', 'local', 'admin'
-    const [showPassword, setShowPassword] = useState(false);
-    const router = useRouter();
 
-    const handleFormSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log(`Submitting ${view} for ${role}`);
-        router.push(`/dashboard/${role}`);
-    };
-
-    const getFormFields = () => {
-        const commonFields = (
-            <>
-                <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
-                    <input name="username" required className="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                 <div className="relative">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                    <input name="password" type={showPassword ? 'text' : 'password'} required className="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center text-gray-500">
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                </div>
-            </>
-        );
-
-        if (view === 'login') return commonFields;
-
-        // Signup fields
-        switch (role) {
+const MainDashboard = ({ role, onFloatClick }: { role: string, onFloatClick: (float: any) => void }) => {
+    const roleSpecificStats = () => {
+        switch(role) {
             case 'researcher':
                 return <>
-                    <div><label className="block text-gray-700 text-sm font-bold mb-2">Email</label><input name="email" type="email" required className="shadow-sm appearance-none border rounded w-full py-2 px-3" /></div>
-                    <div><label className="block text-gray-700 text-sm font-bold mb-2">ID of Organisation</label><input name="orgId" required className="shadow-sm appearance-none border rounded w-full py-2 px-3" /></div>
-                    {commonFields}
+                    <StatCard title="Active Projects" value="4" icon={<Briefcase size={24}/>} />
+                    <StatCard title="Team Members" value="6" icon={<Users size={24}/>} />
+                    <StatCard title="Published Papers" value="2" icon={<BookOpen size={24}/>} />
+                    <StatCard title="API Calls Used" value="1,204" icon={<Server size={24}/>} />
                 </>;
             case 'local':
                 return <>
-                    <div><label className="block text-gray-700 text-sm font-bold mb-2">Region</label><input name="region" required className="shadow-sm appearance-none border rounded w-full py-2 px-3" /></div>
-                    {commonFields}
+                    <StatCard title="Monitored Region" value="Pimpri-Chinchwad" icon={<MapIcon size={24}/>} />
+                    <StatCard title="Active Alerts" value="2" icon={<AlertTriangle size={24}/>} />
+                    <StatCard title="Data Points" value="2,450" icon={<DatabaseZap size={24}/>} />
+                    <StatCard title="BGC Floats" value="3" icon={<Globe size={24}/>} />
                 </>;
-            case 'admin':
-                 return <>
-                    <div><label className="block text-gray-700 text-sm font-bold mb-2">Admin Email</label><input name="email" type="email" required className="shadow-sm appearance-none border rounded w-full py-2 px-3" /></div>
-                    {commonFields}
-                    <p className="text-xs text-gray-500 mt-1">Two-step authentication will be set up after registration.</p>
+             case 'admin':
+                return <>
+                    <StatCard title="Total Users" value="256" icon={<Users size={24}/>} />
+                    <StatCard title="Data Sources" value="5" icon={<Server size={24}/>} />
+                    <StatCard title="System Status" value="Online" icon={<Settings size={24}/>} />
+                    <StatCard title="Critical Alerts" value="1" icon={<AlertTriangle size={24}/>} />
                 </>;
             default: // Student
-                return <>
-                    <div><label className="block text-gray-700 text-sm font-bold mb-2">University Email</label><input name="email" type="email" required className="shadow-sm appearance-none border rounded w-full py-2 px-3" /></div>
-                    <div><label className="block text-gray-700 text-sm font-bold mb-2">College / Institution</label><input name="college" required className="shadow-sm appearance-none border rounded w-full py-2 px-3" /></div>
-                    {commonFields}
+                 return <>
+                    <StatCard title="Total Queries" value="142" icon={<Search size={24}/>} />
+                    <StatCard title="Datasets Accessed" value="12" icon={<DatabaseZap size={24}/>} />
+                    <StatCard title="BGC Floats Tracked" value="3" icon={<Globe size={24}/>} />
+                    <StatCard title="Active Alerts" value="2" icon={<AlertTriangle size={24}/>} />
                 </>;
         }
     };
     
     return (
-        <main className="flex w-full h-screen bg-gray-100">
-            {/* Left Branding Panel */}
-            <div className="hidden lg:flex w-2/5 flex-col items-center justify-center bg-blue-950 text-white p-12 text-center relative overflow-hidden">
-                <BackgroundWaves />
-                <div className="z-10 flex flex-col items-center">
-                    <FloatChatLogo />
-                    <h1 className="text-4xl font-bold mt-4">FloatChat</h1>
-                    <p className="text-lg text-blue-200 mt-2">
-                        Your Conversational Gateway to Ocean Data
-                    </p>
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {roleSpecificStats()}
+            </div>
+            <MapViewer onFloatClick={onFloatClick} />
+            <div>
+                <h2 className="text-2xl font-bold text-gray-800 my-6">Detailed Analysis Graphs</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <DataChartCard title="Temperature (°C)" icon={<Thermometer size={20} />} />
+                    <DataChartCard title="Salinity (PSU)" icon={<Waves size={20} />} />
+                    <DataChartCard title="Wind Speed (km/h)" icon={<Wind size={20} />} />
+                    <DataChartCard title="Pressure (hPa)" icon={<DatabaseZap size={20} />} />
                 </div>
             </div>
+        </div>
+    );
+};
 
-            {/* Right Form Panel */}
-            <div className="w-full lg:w-3/5 flex items-center justify-center p-8">
-                <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-xl">
-                    <div className="flex justify-center bg-gray-100 p-1 rounded-lg mb-6">
-                        <TabButton value="student" label="Student" role={role} setRole={setRole} />
-                        <TabButton value="researcher" label="Researcher" role={role} setRole={setRole} />
-                        <TabButton value="local" label="Local" role={role} setRole={setRole} />
-                        <TabButton value="admin" label="Admin" role={role} setRole={setRole} />
+const ChatBotPanel = () => {
+    // ... (ChatBotPanel code remains the same as previous version)
+    const [messages, setMessages] = useState([{ text: "Hello! I am FloatChat AI. How can I help you analyze ocean data today?", sender: 'bot' }]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSend = async () => {
+        if (input.trim() === '') return;
+        const newMessages = [...messages, { text: input, sender: 'user' }];
+        setMessages(newMessages); setInput(''); setIsLoading(true);
+        try {
+            const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: input }) });
+            if (!response.ok) throw new Error('API request failed');
+            const data = await response.json();
+            setMessages([...newMessages, { text: data.reply, sender: 'bot' }]);
+        } catch (error) {
+            console.error("Chat API error:", error);
+            setMessages([...newMessages, { text: "Sorry, I'm having trouble connecting to the AI service. Please try again.", sender: 'bot' }]);
+        } finally { setIsLoading(false); }
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-lg shadow-md border h-full flex flex-col max-h-[80vh]">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center"><BotMessageSquare className="mr-2 text-blue-600"/>AI Chat Assistant</h2>
+            <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+                {messages.map((msg, index) => (
+                    <div key={index} className={`flex items-start gap-3 ${msg.sender === 'bot' ? '' : 'justify-end'}`}>
+                        {msg.sender === 'bot' && <div className="p-2 bg-blue-600 text-white rounded-full self-start"><BotMessageSquare size={20}/></div>}
+                        <div className={`max-w-md p-3 rounded-lg ${msg.sender === 'bot' ? 'bg-gray-200 text-gray-800' : 'bg-blue-600 text-white'}`}>{msg.text}</div>
+                        {msg.sender === 'user' && <div className="p-2 bg-gray-200 text-gray-800 rounded-full self-start"><User size={20}/></div>}
                     </div>
+                ))}
+                {isLoading && <div className="flex items-start gap-3"><div className="p-2 bg-blue-600 text-white rounded-full"><BotMessageSquare size={20}/></div><div className="p-3 bg-gray-200 text-gray-500 rounded-lg">Analyzing...</div></div>}
+            </div>
+            <div className="mt-4 flex">
+                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} placeholder="Ask about salinity, temperature..." className="flex-1 p-3 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"/>
+                <button onClick={handleSend} className="bg-blue-600 text-white p-3 rounded-r-lg hover:bg-blue-700 disabled:bg-blue-300" disabled={isLoading}><Send size={20}/></button>
+            </div>
+        </div>
+    );
+};
 
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                       <span className="capitalize">{view === 'signup' ? 'Create Your' : 'Log into Your'}</span> <span className="capitalize">{role}</span> Account
-                    </h2>
-                    
-                    <form onSubmit={handleFormSubmit} className="space-y-4">
-                        {getFormFields()}
-                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">
-                            {view === 'signup' ? 'Create Account' : 'Log In'}
-                        </button>
+const SettingsPage = ({ user }: { user: { username: string, role: string }}) => {
+     // ... (SettingsPage code remains the same as previous version)
+     return (
+        <div className="bg-white p-8 rounded-lg shadow-md border max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-800 mb-8">Settings</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-1">
+                    <nav className="space-y-2">
+                        <a href="#profile" className="flex items-center px-4 py-2 text-blue-600 bg-blue-100 rounded-md font-semibold"><User className="mr-3" size={20}/> Profile</a>
+                        <a href="#notifications" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"><Bell className="mr-3" size={20}/> Notifications</a>
+                    </nav>
+                </div>
+                <div className="md:col-span-2 space-y-10">
+                    <form id="profile" className="space-y-6">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Edit Profile</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Username</label>
+                                    <input type="text" defaultValue={user.username} className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" defaultValue={`${user.role}@floatchat.com`} className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Change Password</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                                    <input type="password" placeholder="••••••••" className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">New Password</label>
+                                    <input type="password" placeholder="••••••••" className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end pt-4">
+                            <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Save All Changes</button>
+                        </div>
                     </form>
-                    
-                    <div className="text-center text-sm text-gray-600 mt-6">
-                        <span>{view === 'signup' ? "Already have an account?" : "Don't have an account?"}</span>
-                        <button onClick={() => setView(view === 'signup' ? 'login' : 'signup')} className="text-blue-600 hover:underline font-semibold ml-1">
-                             {view === 'signup' ? 'Log In' : 'Sign Up'}
-                        </button>
+                    <div id="notifications">
+                        <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Notification Preferences</h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 border rounded-md">
+                                <div>
+                                    <h4 className="font-semibold text-gray-800">Email Notifications</h4>
+                                    <p className="text-sm text-gray-600">Receive critical alerts and updates via email.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" value="" className="sr-only peer" defaultChecked/>
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
+    );
+};
+
+const ResearchPaperPage = () => (
+    // ... (ResearchPaperPage code remains the same as previous version)
+    <div className="bg-white p-8 rounded-lg shadow-md border">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Research Papers & Documents</h2>
+        <div className="space-y-4">
+            {mockPapers.map((paper, index) => (
+                <div key={index} className="flex flex-wrap items-center justify-between p-4 border rounded-lg hover:bg-gray-50 gap-4">
+                    <div>
+                        <a href={paper.link} target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:underline">{paper.title}</a>
+                        <p className="text-sm text-gray-600">{paper.author} ({paper.year})</p>
+                    </div>
+                    <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 flex-shrink-0">
+                        <Printer size={16} /> Print
+                    </button>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const FeedbackPage = () => (
+    // ... (FeedbackPage code remains the same as previous version)
+    <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold text-gray-800">Submit Feedback</h2>
+        <p className="mt-2 text-gray-600 mb-6">We value your input! Let us know how we can improve.</p>
+        <form className="space-y-4">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Feedback Type</label>
+                <select className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900">
+                    <option>General Comment</option>
+                    <option>Bug Report</option>
+                    <option>Feature Request</option>
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Your Message</label>
+                <textarea rows={5} className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="Describe your experience..."></textarea>
+            </div>
+            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">
+                Submit Feedback
+            </button>
+        </form>
+    </div>
+);
+
+const GenericPage = ({ title }: { title: string }) => (
+    <div className="bg-white p-8 rounded-lg shadow-md border">
+        <h2 className="text-2xl font-bold text-gray-800 capitalize">{title.replace('-', ' ')}</h2>
+        <p className="mt-4 text-gray-600">This is a placeholder page for the {title.replace('-', ' ')} section.</p>
+    </div>
+);
+
+// --- Main Page Component ---
+export default function DashboardPage() {
+    const params = useParams();
+    const role = params.role as string;
+    const username = (params.username as string) || (role ? `${role.charAt(0).toUpperCase() + role.slice(1)} User` : 'User');
+    const [activePage, setActivePage] = useState('dashboard');
+    const [isMapModalOpen, setMapModalOpen] = useState(false);
+    const [selectedFloat, setSelectedFloat] = useState<any>(null);
+
+    const handleFloatClick = (float: any) => { setSelectedFloat(float); setMapModalOpen(true); };
+
+    if (!role) { return <div className="flex h-screen items-center justify-center">Loading...</div>; }
+
+    const renderContent = () => {
+        switch (activePage) {
+            case 'dashboard':
+                return <MainDashboard role={role} onFloatClick={handleFloatClick} />;
+            case 'research':
+                return <ResearchPaperPage />;
+            case 'ai-bot':
+                return <ChatBotPanel />;
+            case 'settings':
+                return <SettingsPage user={{ username, role }} />;
+            case 'feedback':
+                return <FeedbackPage />;
+            default:
+                return <GenericPage title={activePage} />;
+        }
+    };
+
+    return (
+        <>
+            <DashboardLayout 
+                role={role} 
+                username={username}
+                activePage={activePage} 
+                setActivePage={setActivePage}
+            >
+                {renderContent()}
+            </DashboardLayout>
+            {isMapModalOpen && <FloatDetailModal float={selectedFloat} onClose={() => setMapModalOpen(false)} role={role} />}
+        </>
     );
 }
 
