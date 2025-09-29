@@ -26,7 +26,15 @@ It provides role-based dashboards for **Students, Researchers, Locals, and Admin
   - Data-driven visual dashboards  
 
 ---
+## 🖼️ Screenshots
 
+### Landing Page
+![Landing Page](./public/screenshots/landing.png)
+
+### Dashboard
+![Dashboard](./public/screenshots/DashBoard.png)
+
+---
 ## 🏗️ Tech Stack
 
 - **Framework**: [Next.js 14](https://nextjs.org/)  
