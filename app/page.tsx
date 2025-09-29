@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-/* using */
 import DashboardLayout from '../app/components/DashboardLayout';
 import { 
     Search, BookOpen, DatabaseZap, Briefcase, Users, Map as MapIcon, Server, Settings, 
