@@ -4,13 +4,21 @@ import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import DashboardLayout from '../app/components/DashboardLayout';
 import { 
-    Search, BookOpen, DatabaseZap, Clock, Briefcase, Users, Map as MapIcon, Server, Settings, 
+    Search, BookOpen, DatabaseZap, Briefcase, Users, Map as MapIcon, Server, Settings, 
     Thermometer, Waves, AlertTriangle, X, Globe, Send, User, BotMessageSquare, Bell, Printer, Wind
 } from 'lucide-react';
 
+// --- Type Definition for Float Data ---
+interface FloatData {
+    id: string;
+    lat: number;
+    lon: number;
+    temp: number;
+    salinity: number;
+}
+
 // --- Mock Data for UI Demonstration ---
-// In a real app, this data would come from an API endpoint powered by your Python notebooks.
-const mockFloats = [
+const mockFloats: FloatData[] = [
     { id: 'F7A9', lat: 18.52, lon: 73.85, temp: 28.5, salinity: 35.2 },
     { id: 'B3C1', lat: 19.07, lon: 72.87, temp: 29.1, salinity: 36.1 },
     { id: 'D9E4', lat: 18.92, lon: 72.83, temp: 28.8, salinity: 35.8 },
@@ -24,7 +32,7 @@ const mockPapers = [
 
 // --- Reusable UI Components ---
 
-const FloatDetailModal = ({ float, onClose, role }: { float: any, onClose: () => void, role: string }) => {
+const FloatDetailModal = ({ float, onClose, role }: { float: FloatData | null, onClose: () => void, role: string }) => {
     if (!float) return null;
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -59,7 +67,7 @@ const FloatDetailModal = ({ float, onClose, role }: { float: any, onClose: () =>
     );
 };
 
-const MapViewer = ({ onFloatClick }: { onFloatClick: (float: any) => void }) => {
+const MapViewer = ({ onFloatClick }: { onFloatClick: (float: FloatData) => void }) => {
     const [mapMode, setMapMode] = useState('2d');
     const lastUpdated = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     return (
@@ -117,7 +125,7 @@ const DataChartCard = ({ title, icon }: { title: string, icon: React.ReactNode }
 );
 
 
-const MainDashboard = ({ role, onFloatClick }: { role: string, onFloatClick: (float: any) => void }) => {
+const MainDashboard = ({ role, onFloatClick }: { role: string, onFloatClick: (float: FloatData) => void }) => {
     const roleSpecificStats = () => {
         switch(role) {
             case 'researcher':
@@ -171,7 +179,6 @@ const MainDashboard = ({ role, onFloatClick }: { role: string, onFloatClick: (fl
 };
 
 const ChatBotPanel = () => {
-    // ... (ChatBotPanel code remains the same as previous version)
     const [messages, setMessages] = useState([{ text: "Hello! I am FloatChat AI. How can I help you analyze ocean data today?", sender: 'bot' }]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -213,7 +220,6 @@ const ChatBotPanel = () => {
 };
 
 const SettingsPage = ({ user }: { user: { username: string, role: string }}) => {
-     // ... (SettingsPage code remains the same as previous version)
      return (
         <div className="bg-white p-8 rounded-lg shadow-md border max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-800 mb-8">Settings</h2>
@@ -278,7 +284,6 @@ const SettingsPage = ({ user }: { user: { username: string, role: string }}) => 
 };
 
 const ResearchPaperPage = () => (
-    // ... (ResearchPaperPage code remains the same as previous version)
     <div className="bg-white p-8 rounded-lg shadow-md border">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Research Papers & Documents</h2>
         <div className="space-y-4">
@@ -298,7 +303,6 @@ const ResearchPaperPage = () => (
 );
 
 const FeedbackPage = () => (
-    // ... (FeedbackPage code remains the same as previous version)
     <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 max-w-2xl mx-auto">
         <h2 className="text-2xl font-bold text-gray-800">Submit Feedback</h2>
         <p className="mt-2 text-gray-600 mb-6">We value your input! Let us know how we can improve.</p>
@@ -336,9 +340,9 @@ export default function DashboardPage() {
     const username = (params.username as string) || (role ? `${role.charAt(0).toUpperCase() + role.slice(1)} User` : 'User');
     const [activePage, setActivePage] = useState('dashboard');
     const [isMapModalOpen, setMapModalOpen] = useState(false);
-    const [selectedFloat, setSelectedFloat] = useState<any>(null);
+    const [selectedFloat, setSelectedFloat] = useState<FloatData | null>(null);
 
-    const handleFloatClick = (float: any) => { setSelectedFloat(float); setMapModalOpen(true); };
+    const handleFloatClick = (float: FloatData) => { setSelectedFloat(float); setMapModalOpen(true); };
 
     if (!role) { return <div className="flex h-screen items-center justify-center">Loading...</div>; }
 
