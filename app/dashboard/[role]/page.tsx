@@ -8,10 +8,17 @@ import {
     MessageSquareQuote, Thermometer, Waves, AlertTriangle, X, Globe 
 } from 'lucide-react';
 
+// --- Type Definitions ---
+interface Alert {
+    id: number;
+    type: 'critical' | 'warning' | 'info';
+    message: string;
+}
+
 // --- New Reusable Widget Components ---
 
 const AlertsPanel = () => {
-    const [alerts, setAlerts] = useState([
+    const [alerts, setAlerts] = useState<Alert[]>([
         { id: 1, type: 'critical', message: 'Critical Salinity Anomaly detected in Arabian Sea sector.' },
         { id: 2, type: 'warning', message: 'BGC Float #A4F2 offline for 3 hours.' },
         { id: 3, type: 'info', message: 'System maintenance scheduled for 10 PM IST.' },
